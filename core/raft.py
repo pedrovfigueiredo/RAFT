@@ -3,10 +3,10 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from update import BasicUpdateBlock, SmallUpdateBlock
-from extractor import BasicEncoder, SmallEncoder
-from corr import CorrBlock, AlternateCorrBlock
-from utils.utils import bilinear_sampler, coords_grid, upflow8
+from RAFT.core.update import BasicUpdateBlock, SmallUpdateBlock
+from RAFT.core.extractor import BasicEncoder, SmallEncoder
+from RAFT.core.corr import CorrBlock, AlternateCorrBlock
+from RAFT.core.utils.utils import bilinear_sampler, coords_grid, upflow8
 
 try:
     autocast = torch.cuda.amp.autocast
@@ -26,7 +26,8 @@ class RAFT(nn.Module):
         super(RAFT, self).__init__()
         self.args = args
 
-        if args.small:
+        if args.raft_small:
+        # if args.small:
             self.hidden_dim = hdim = 96
             self.context_dim = cdim = 64
             args.corr_levels = 4
@@ -45,7 +46,8 @@ class RAFT(nn.Module):
             self.args.alternate_corr = False
 
         # feature network, context network, and update block
-        if args.small:
+        if args.raft_small:
+        # if args.small:
             self.fnet = SmallEncoder(output_dim=128, norm_fn='instance', dropout=args.dropout)        
             self.cnet = SmallEncoder(output_dim=hdim+cdim, norm_fn='none', dropout=args.dropout)
             self.update_block = SmallUpdateBlock(self.args, hidden_dim=hdim)
@@ -109,16 +111,16 @@ class RAFT(nn.Module):
         # run the context network
         with autocast(enabled=self.args.mixed_precision):
             cnet = self.cnet(image1)
-            net, inp = torch.split(cnet, [hdim, cdim], dim=1)
-            net = torch.tanh(net)
-            inp = torch.relu(inp)
+        net, inp = torch.split(cnet, [hdim, cdim], dim=1)
+        net = torch.tanh(net)
+        inp = torch.relu(inp)
 
         coords0, coords1 = self.initialize_flow(image1)
 
         if flow_init is not None:
             coords1 = coords1 + flow_init
 
-        flow_predictions = []
+        # flow_predictions = []
         for itr in range(iters):
             coords1 = coords1.detach()
             corr = corr_fn(coords1) # index correlation volume
@@ -136,9 +138,10 @@ class RAFT(nn.Module):
             else:
                 flow_up = self.upsample_flow(coords1 - coords0, up_mask)
             
-            flow_predictions.append(flow_up)
+            # flow_predictions.append(flow_up)
 
         if test_mode:
             return coords1 - coords0, flow_up
-            
-        return flow_predictions
+        
+        raise('Multi-Level Flows Return Not Implemented')
+        # return flow_predictions

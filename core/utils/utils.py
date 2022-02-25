@@ -10,6 +10,10 @@ class InputPadder:
         self.ht, self.wd = dims[-2:]
         pad_ht = (((self.ht // 8) + 1) * 8 - self.ht) % 8
         pad_wd = (((self.wd // 8) + 1) * 8 - self.wd) % 8
+        
+        self.ht_padded = self.ht + pad_ht
+        self.wd_padded = self.wd + pad_wd
+        
         if mode == 'sintel':
             self._pad = [pad_wd//2, pad_wd - pad_wd//2, pad_ht//2, pad_ht - pad_ht//2]
         else:
